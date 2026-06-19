@@ -1,5 +1,6 @@
 package com.shop.service;
 
+import com.shop.common.BusinessException;
 import com.shop.dto.OrderCreateRequest;
 import com.shop.entity.CartItem;
 import com.shop.entity.OrderItem;
@@ -40,13 +41,13 @@ public class OrderService {
     public OrderMain create(Long userId, OrderCreateRequest req) {
         List<CartItem> checked = cartItemMapper.selectCheckedByUserId(userId);
         if (checked.isEmpty()) {
-            throw new IllegalArgumentException("请先勾选要结算的商品");
+            throw BusinessException.badRequest("请先勾选要结算的商品");
         }
         BigDecimal totalAmount = BigDecimal.ZERO;
         for (CartItem item : checked) {
             Product p = productMapper.selectById(item.getProductId());
             if (p == null || p.getStock() < item.getQuantity()) {
-                throw new IllegalStateException("商品 " + (p != null ? p.getName() : item.getProductId()) + " 库存不足");
+                throw BusinessException.conflict("商品 " + (p != null ? p.getName() : item.getProductId()) + " 库存不足");
             }
             totalAmount = totalAmount.add(p.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
         }
@@ -85,7 +86,7 @@ public class OrderService {
     public OrderMain getById(Long id, Long userId) {
         OrderMain order = orderMainMapper.selectById(id);
         if (order == null || !order.getUserId().equals(userId)) {
-            return null;
+            throw BusinessException.notFound("订单不存在");
         }
         return order;
     }
@@ -94,10 +95,10 @@ public class OrderService {
     public void pay(Long orderId, Long userId) {
         OrderMain order = orderMainMapper.selectById(orderId);
         if (order == null || !order.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("订单不存在");
+            throw BusinessException.notFound("订单不存在");
         }
         if (order.getStatus() != 0) {
-            throw new IllegalArgumentException("订单状态不允许支付");
+            throw BusinessException.badRequest("订单状态不允许支付");
         }
         orderMainMapper.updateStatus(orderId, 1);
         log.info("Order paid: orderId={}", orderId);
@@ -107,10 +108,10 @@ public class OrderService {
     public void cancel(Long orderId, Long userId) {
         OrderMain order = orderMainMapper.selectById(orderId);
         if (order == null || !order.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("订单不存在");
+            throw BusinessException.notFound("订单不存在");
         }
         if (order.getStatus() != 0) {
-            throw new IllegalArgumentException("仅待付款订单可取消");
+            throw BusinessException.badRequest("仅待付款订单可取消");
         }
         orderMainMapper.updateStatus(orderId, 4);
         log.info("Order cancelled: orderId={}", orderId);

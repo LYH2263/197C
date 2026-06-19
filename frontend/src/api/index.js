@@ -9,6 +9,15 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+const ERROR_MESSAGES = {
+  400: '参数错误',
+  401: '请先登录',
+  403: '权限不足',
+  404: '资源不存在',
+  409: '操作冲突',
+  500: '服务器内部错误',
+}
+
 api.interceptors.request.use((config) => {
   const user = useUserStore()
   if (user.token) config.headers.Authorization = `Bearer ${user.token}`
@@ -16,16 +25,37 @@ api.interceptors.request.use((config) => {
 })
 
 api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    const msg = err.response?.data?.message || err.message || '网络错误'
-    ElMessage.error(msg)
-    if (err.response?.status === 401) {
-      useUserStore().logout()
-      router.push({ name: 'Login', query: { redirect: router.currentRoute.value.fullPath } })
+  (res) => {
+    const code = res.data?.code
+    if (code !== undefined && code !== 200) {
+      const message = res.data?.message || ERROR_MESSAGES[code] || '请求失败'
+      ElMessage.error(message)
+      if (code === 401) {
+        handleUnauthorized()
+      }
+      return Promise.reject(new Error(message))
     }
+    return res
+  },
+  (err) => {
+    const status = err.response?.status
+    const message = err.response?.data?.message || ERROR_MESSAGES[status] || err.message || '网络错误'
+
+    ElMessage.error(message)
+
+    if (status === 401) {
+      handleUnauthorized()
+    }
+
     return Promise.reject(err)
   }
 )
+
+function handleUnauthorized() {
+  const user = useUserStore()
+  user.logout()
+  const currentPath = router.currentRoute.value.fullPath
+  router.push({ name: 'Login', query: { redirect: currentPath } })
+}
 
 export default api

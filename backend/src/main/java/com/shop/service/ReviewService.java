@@ -1,7 +1,9 @@
 package com.shop.service;
 
+import com.shop.common.BusinessException;
 import com.shop.dto.ReviewRequest;
 import com.shop.dto.ReviewVO;
+import com.shop.entity.OrderMain;
 import com.shop.entity.Product;
 import com.shop.entity.Review;
 import com.shop.entity.User;
@@ -9,7 +11,6 @@ import com.shop.mapper.OrderMainMapper;
 import com.shop.mapper.ProductMapper;
 import com.shop.mapper.ReviewMapper;
 import com.shop.mapper.UserMapper;
-import com.shop.entity.OrderMain;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,14 +38,14 @@ public class ReviewService {
     public Review create(Long userId, ReviewRequest req) {
         OrderMain order = orderMainMapper.selectById(req.getOrderId());
         if (order == null || !order.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("订单不存在");
+            throw BusinessException.notFound("订单不存在");
         }
         // 已付款(1)、已发货(2)、已完成(3) 均可评价
         if (order.getStatus() == null || order.getStatus() < 1 || order.getStatus() > 3) {
-            throw new IllegalArgumentException("仅已付款及之后的订单可评价");
+            throw BusinessException.badRequest("仅已付款及之后的订单可评价");
         }
         if (reviewMapper.selectByUserAndOrderAndProduct(userId, req.getOrderId(), req.getProductId()) != null) {
-            throw new IllegalArgumentException("该订单商品已评价");
+            throw BusinessException.conflict("该订单商品已评价");
         }
         Review review = new Review();
         review.setUserId(userId);
@@ -77,7 +78,7 @@ public class ReviewService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteById(Long id) {
         if (reviewMapper.selectById(id) == null) {
-            throw new IllegalArgumentException("评价不存在");
+            throw BusinessException.notFound("评价不存在");
         }
         reviewMapper.deleteById(id);
         log.info("Review deleted: id={}", id);

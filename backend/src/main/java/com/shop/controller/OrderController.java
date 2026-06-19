@@ -36,19 +36,13 @@ public class OrderController {
     public Result<OrderMain> getById(@PathVariable Long id) {
         Long userId = SecurityUtils.getCurrentUserId();
         OrderMain order = orderService.getById(id, userId);
-        if (order == null) {
-            return Result.fail(404, "订单不存在");
-        }
         return Result.ok(order);
     }
 
     @GetMapping("/{id}/items")
     public Result<List<OrderItem>> listItems(@PathVariable Long id) {
         Long userId = SecurityUtils.getCurrentUserId();
-        OrderMain order = orderService.getById(id, userId);
-        if (order == null) {
-            return Result.fail(404, "订单不存在");
-        }
+        orderService.getById(id, userId);
         return Result.ok(orderService.listItems(id));
     }
 
