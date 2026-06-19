@@ -4,17 +4,14 @@ import com.shop.common.Result;
 import com.shop.dto.ReviewRequest;
 import com.shop.dto.ReviewVO;
 import com.shop.entity.Review;
+import com.shop.security.SecurityUtils;
 import com.shop.service.ReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * 商品评价接口
- */
 @RestController
 @RequestMapping("/reviews")
 @RequiredArgsConstructor
@@ -22,16 +19,9 @@ public class ReviewController {
 
     private final ReviewService reviewService;
 
-    private Long requireUserId(Authentication auth) {
-        if (auth == null || !(auth.getPrincipal() instanceof Long)) {
-            throw new IllegalStateException("未登录");
-        }
-        return (Long) auth.getPrincipal();
-    }
-
     @PostMapping
-    public Result<Review> create(Authentication auth, @Valid @RequestBody ReviewRequest req) {
-        Long userId = requireUserId(auth);
+    public Result<Review> create(@Valid @RequestBody ReviewRequest req) {
+        Long userId = SecurityUtils.getCurrentUserId();
         Review review = reviewService.create(userId, req);
         return Result.ok(review);
     }
@@ -41,10 +31,9 @@ public class ReviewController {
         return Result.ok(reviewService.listByProductId(productId));
     }
 
-    /** 我的评价 */
     @GetMapping("/me")
-    public Result<List<ReviewVO>> myReviews(Authentication auth) {
-        Long userId = requireUserId(auth);
+    public Result<List<ReviewVO>> myReviews() {
+        Long userId = SecurityUtils.getCurrentUserId();
         return Result.ok(reviewService.listByUserId(userId));
     }
 }
