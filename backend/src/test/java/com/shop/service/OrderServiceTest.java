@@ -1,5 +1,6 @@
 package com.shop.service;
 
+import com.shop.common.BusinessException;
 import com.shop.dto.OrderCreateRequest;
 import com.shop.entity.CartItem;
 import com.shop.entity.OrderMain;
@@ -86,7 +87,7 @@ class OrderServiceTest {
         when(cartItemMapper.selectCheckedByUserId(USER_ID)).thenReturn(Collections.emptyList());
 
         assertThatThrownBy(() -> orderService.create(USER_ID, createRequest))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("请先勾选要结算的商品");
         verify(orderMainMapper, never()).insert(any());
     }
@@ -97,7 +98,7 @@ class OrderServiceTest {
         when(orderMainMapper.selectById(ORDER_ID)).thenReturn(null);
 
         assertThatThrownBy(() -> orderService.pay(ORDER_ID, USER_ID))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("订单不存在");
         verify(orderMainMapper, never()).updateStatus(anyLong(), any());
     }
@@ -108,7 +109,7 @@ class OrderServiceTest {
         when(orderMainMapper.selectById(ORDER_ID)).thenReturn(order);
 
         assertThatThrownBy(() -> orderService.pay(ORDER_ID, OTHER_USER_ID))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("订单不存在");
     }
 
@@ -119,7 +120,7 @@ class OrderServiceTest {
         when(orderMainMapper.selectById(ORDER_ID)).thenReturn(order);
 
         assertThatThrownBy(() -> orderService.pay(ORDER_ID, USER_ID))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("订单状态不允许支付");
     }
 
@@ -140,7 +141,7 @@ class OrderServiceTest {
         when(orderMainMapper.selectById(ORDER_ID)).thenReturn(order);
 
         assertThatThrownBy(() -> orderService.cancel(ORDER_ID, USER_ID))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("仅待付款订单可取消");
     }
 
@@ -155,13 +156,13 @@ class OrderServiceTest {
     }
 
     @Test
-    @DisplayName("根据ID获取订单-非所属用户返回 null")
-    void getById_wrongUser_returnsNull() {
+    @DisplayName("根据ID获取订单-非所属用户应抛出异常")
+    void getById_wrongUser_throwsException() {
         when(orderMainMapper.selectById(ORDER_ID)).thenReturn(order);
 
-        OrderMain result = orderService.getById(ORDER_ID, OTHER_USER_ID);
-
-        assertThat(result).isNull();
+        assertThatThrownBy(() -> orderService.getById(ORDER_ID, OTHER_USER_ID))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("订单不存在");
     }
 
     @Test

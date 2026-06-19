@@ -4,6 +4,8 @@ spring:
     username: sa
     password:
     driver-class-name: org.h2.Driver
+    hikari:
+      connection-init-sql: SELECT 1
   sql:
     init:
       mode: always
@@ -15,5 +17,5 @@ mybatis:
     map-underscore-to-camel-case: true
 
 jwt:
-  secret: testSecretKeyForJWT
+  secret: testSecretKeyForJWTTokenGenerationMustBeAtLeast256BitsLongEnough
   expiration-ms: 3600000
